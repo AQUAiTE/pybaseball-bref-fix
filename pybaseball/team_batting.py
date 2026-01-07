@@ -60,3 +60,65 @@ def team_batting_bref(team: str, start_season: int, end_season: Optional[int]=No
     data = data.dropna()  # Removes Row of All Nones
 
     return data
+
+@cache.df_cache()
+def season_batting_bref(start_season: int, end_season: Optional[int]=None) -> pd.DataFrame:
+    """
+    Get per-team season Batting Statistics from Baseball-Reference's Standard Batting page
+
+    ARGUMENTS:
+    start_season : int : The first season you want data for (or only season if end_season unspecified)
+    end_season: int : The final season you want data for
+    """
+    if start_season is None:
+        raise ValueError(
+            "You need to provide at least one season to collect data for. Try season_batting_bref(season) or season_batting_bref(start_season, end_season)."
+        )
+    if end_season is None:
+        end_season = start_season
+    
+    url = "https://www.baseball-reference.com/leagues/majors/{}-standard-batting.shtml"
+
+    raw_data = []
+    headings: Optional[List[str]] = None
+
+    for season in range(start_season, end_season + 1):
+        print("Getting per-team batting data: {}".format(season))
+        season_url = url.format(season)
+        response = session.get(season_url)
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        table = soup.find('table', id = 'teams_standard_batting')
+        if not table:
+            print('Table not found for {}'.format(season))
+            continue
+        
+        if headings is None:
+            headings = [th.get('data-stat') for th in table.find('thead').find_all('th')]
+        
+        rows  = table.find('tbody').find_all('tr')
+        for row in rows:
+            cols = []
+
+            th = row.find('th', {'data-stat': 'team_name'})
+            team_name = th.text.strip()
+
+            # Skip the league average
+            if team_name == 'League Average':
+                continue
+
+            a_tag = th.find('a')
+            team_abbrev = a_tag.get('href').split('/')[2]
+    
+            cols.extend([season, team_abbrev, team_name])
+            cols.extend([td.text.strip() for td in row.find_all('td')])
+            raw_data.append(cols)
+
+        
+    assert headings is not None
+    # Adjust for the additional columns
+    headings = ['season', 'team_abbrev', 'team_name'] + headings[1:]
+    data = pd.DataFrame(data=raw_data, columns=headings)
+    data.dropna()
+
+    return data

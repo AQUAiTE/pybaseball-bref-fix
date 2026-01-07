@@ -103,6 +103,6 @@ def bwar_pitch(return_all: bool=False) -> pd.DataFrame:
         return c
     else:
         cols_to_keep = ['name_common', 'mlb_ID', 'player_ID', 'year_ID', 'team_ID', 'stint_ID', 'lg_ID',
-                        'G', 'GS', 'RA','xRA', 'BIP', 'BIP_perc','salary', 'ERA_plus', 'WAR_rep', 'WAA',
+                        'G', 'GS', 'IPouts', 'RA','xRA', 'BIP', 'BIP_perc','salary', 'ERA_plus', 'WAR_rep', 'WAA',
                         'WAA_adj','WAR']
         return c[cols_to_keep]
